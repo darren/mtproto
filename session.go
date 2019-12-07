@@ -489,7 +489,9 @@ func (session *Session) process(msgId int64, seqNo int32, data interface{}) inte
 		case *PredUpdateShort:
 			data := data.(*PredUpdateShort)
 			//session.updatesState.Pts ++	//TODO: need to comment in it?
-			session.updatesState.Date = data.Date
+			if session.updatesState != nil {
+				session.updatesState.Date = data.Date
+			}
 			session.notify(updateReceived{data})
 			return data
 
