@@ -567,7 +567,7 @@ func (session *Session) process(msgId int64, seqNo int32, data interface{}) inte
 			session.notify(updateReceived{data})
 			return data
 		case *PredMessagesChannelMessages:
-			data := data.(*PredUpdateNewChannelMessage)
+			data := data.(*PredMessagesChannelMessages)
 			session.updatesState.Pts = data.Pts
 			session.notify(updateReceived{data})
 			return data
