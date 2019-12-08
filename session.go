@@ -566,6 +566,11 @@ func (session *Session) process(msgId int64, seqNo int32, data interface{}) inte
 			session.updatesState.Pts = data.Pts
 			session.notify(updateReceived{data})
 			return data
+		case *PredMessagesChannelMessages:
+			data := data.(*PredUpdateNewChannelMessage)
+			session.updatesState.Pts = data.Pts
+			session.notify(updateReceived{data})
+			return data
 
 		default:
 			marshaled, err := json.Marshal(data)
