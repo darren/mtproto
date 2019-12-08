@@ -196,3 +196,4 @@ func (u *PredUpdateChannelTooLong) UpdateDate() int32      { return 0 }
 func (u *PredUpdateReadChannelInbox) UpdateDate() int32    { return 0 }
 func (u *PredUpdateReadChannelOutbox) UpdateDate() int32   { return 0 }
 func (u *PredUpdateNewChannelMessage) UpdateDate() int32   { return 0 }
+func (u *PredMessagesChannelMessages) UpdateDate() int32   { return 0 }
