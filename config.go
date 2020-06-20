@@ -23,6 +23,7 @@ type Configuration struct {
 	PingInterval time.Duration
 	SendInterval time.Duration
 	KeyPath      string
+	Proxy        string // use http_proxy
 }
 
 func NewConfiguration(version, deviceModel, systemVersion, language string,

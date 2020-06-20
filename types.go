@@ -32,8 +32,8 @@ type loadsession struct {
 	connId int32
 	//phone  string
 	//preferredAddr string
-	policy    retryPolicy
-	resp chan sessionResponse
+	policy retryPolicy
+	resp   chan sessionResponse
 }
 
 type sessionResponse struct {
@@ -84,11 +84,11 @@ const untilSuccess retryPolicy = "untilSuccess"
 
 // Connection Events
 type ConnectionOpened struct {
-	mconn *Conn
+	mconn     *Conn
 	sessionID int64
 }
 type sessionBound struct {
-	mconn *Conn
+	mconn     *Conn
 	sessionID int64
 }
 type sessionUnbound struct {

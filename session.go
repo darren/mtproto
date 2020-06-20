@@ -1,24 +1,28 @@
 package mtproto
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cjongseok/slog"
 	"io"
 	"math/rand"
 	"net"
+	"net/http"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/cjongseok/slog"
 )
 
 type dcOptionFlag int
+
 const (
 	ENV_AUTHKEY     = "MTPROTO_AUTHKEY"
 	ENV_AUTHHASH    = "MTPROTO_AUTHHASH"
@@ -36,11 +40,11 @@ const (
 	errorInternal     = 500
 
 	// dc option flags
-	dcOptionFlagIPv6 = 0
+	dcOptionFlagIPv6      = 0
 	dcOptionFlagMediaOnly = 1
-	dcOptionFlagTcpOnly = 2
-	dcOptionFlagCDN = 3
-	dcOptionFlagStatic = 4
+	dcOptionFlagTcpOnly   = 2
+	dcOptionFlagCDN       = 3
+	dcOptionFlagStatic    = 4
 )
 
 type handshakingFailure struct {
@@ -57,11 +61,11 @@ type Session struct {
 	//phonenumber string
 	//addr        string
 	//useIPv6     bool
-	listeners []chan Event
+	listeners   []chan Event
 	listenerMux *sync.Mutex
-	tcpconn   *net.TCPConn
-	f         *os.File
-	queueSend chan packetToSend
+	tcpconn     *net.TCPConn
+	f           *os.File
+	queueSend   chan packetToSend
 
 	readInterrupter chan struct{}
 	sendInterrupter chan struct{}
@@ -123,7 +127,9 @@ func (session *Session) close() {
 	session.pingWaitGroup.Wait()
 	session.sendWaitGroup.Wait()
 
-	session.tcpconn.Close()
+	if session.tcpconn != nil {
+		session.tcpconn.Close()
+	}
 
 	session.stopRead()
 	session.readWaitGroup.Wait()
@@ -223,6 +229,34 @@ func loadSession(appConfig Configuration /*sendQueue chan packetToSend,*/, sessi
 	return session, nil
 }
 
+func dialProxy(proxy string, server string) (*net.TCPConn, error) {
+	proxyAddr, err := net.ResolveTCPAddr("tcp", proxy)
+	if err != nil {
+		return nil, err
+	}
+	conn, err := net.DialTCP("tcp", nil, proxyAddr)
+	if err == nil {
+		var req *http.Request
+		req, err = http.NewRequest("CONNECT", "http://"+server, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Close = false
+		err = req.Write(conn)
+
+		if err == nil {
+			var resp *http.Response
+			resp, err = http.ReadResponse(bufio.NewReader(conn), req)
+			if err == nil && resp.StatusCode != 200 {
+				resp.Body.Close()
+				err = fmt.Errorf("Connect server using proxy error, StatusCode [%d]", resp.StatusCode)
+			}
+		}
+	}
+
+	return conn, err
+}
+
 func (session *Session) open(useIPv6 bool, c Credentials, appConfig Configuration /*sendQueue chan packetToSend,*/, sessionListener chan Event, getUpdateStates bool) error {
 	var err error
 	var tcpAddr *net.TCPAddr
@@ -241,7 +275,13 @@ func (session *Session) open(useIPv6 bool, c Credentials, appConfig Configuratio
 		return err
 	}
 	slog.Logf(session, "dial TCP to %s\n", serverAddr)
-	session.tcpconn, err = net.DialTCP("tcp", nil, tcpAddr)
+
+	if appConfig.Proxy != "" {
+		session.tcpconn, err = dialProxy(appConfig.Proxy, serverAddr)
+	} else {
+		session.tcpconn, err = net.DialTCP("tcp", nil, tcpAddr)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -1066,7 +1106,7 @@ func (x *Session) apiDcOption(ipVersion string, id int32) (*PredDcOption, error)
 	switch ipVersion {
 	case ipv4:
 	case ipv6:
-		flags += 2^dcOptionFlagIPv6
+		flags += 2 ^ dcOptionFlagIPv6
 	default:
 		return nil, fmt.Errorf("invalid ip version: %s", ipVersion)
 	}
@@ -1092,4 +1132,3 @@ func (e TL_rpc_error) Error() string {
 		return fmt.Sprintf("mtproto unknow RPC error: %d %s", e.error_code, e.error_message)
 	}
 }
-
