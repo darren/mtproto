@@ -28,7 +28,7 @@ type Configuration struct {
 }
 
 func NewConfiguration(version, deviceModel, systemVersion, language string,
-	pingInterval time.Duration, sendInterval time.Duration, keyPath string) (Configuration, error) {
+	pingInterval time.Duration, sendInterval time.Duration, keyPath string, credential string) (Configuration, error) {
 	//appConfig := new(Configuration)
 	appConfig := Configuration{}
 
@@ -62,6 +62,7 @@ func NewConfiguration(version, deviceModel, systemVersion, language string,
 	//	}
 	//}
 	appConfig.KeyPath = keyPath
+	appConfig.Credential = credential
 
 	appConfig.PingInterval = pingInterval
 	if pingInterval == 0 {
