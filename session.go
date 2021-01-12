@@ -210,17 +210,27 @@ func loadSession(appConfig Configuration /*sendQueue chan packetToSend,*/, sessi
 	session := new(Session)
 	session.listenerMux = &sync.Mutex{}
 	var err error
-	if appConfig.KeyPath == "" {
-		return nil, fmt.Errorf("no credentials file")
+
+	var credentials *Credentials
+	if appConfig.Credential != "" {
+		credentials, err = NewCredentials([]byte(appConfig.Credential))
+		if err != nil {
+			return nil, fmt.Errorf("new credentials from string failure; %v", err)
+		}
+	} else {
+		if appConfig.KeyPath == "" {
+			return nil, fmt.Errorf("no credentials file")
+		}
+		session.f, err = os.OpenFile(appConfig.KeyPath, os.O_RDONLY, 0600)
+		if err != nil {
+			return nil, fmt.Errorf("no credentials file; %v", err)
+		}
+		credentials, err = NewCredentialsFromFile(session.f)
+		if err != nil {
+			return nil, fmt.Errorf("new credentials from file failure; %v", err)
+		}
 	}
-	session.f, err = os.OpenFile(appConfig.KeyPath, os.O_RDONLY, 0600)
-	if err != nil {
-		return nil, fmt.Errorf("no credentials file; %v", err)
-	}
-	credentials, err := NewCredentialsFromFile(session.f)
-	if err != nil {
-		return nil, fmt.Errorf("new credentials from file failure; %v", err)
-	}
+
 	useIPv6 := isIPv6(credentials.IP)
 	err = session.open(useIPv6, *credentials, appConfig /*sendQueue,*/, sessionListener, true)
 	if err != nil {

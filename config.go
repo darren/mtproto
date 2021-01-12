@@ -22,6 +22,7 @@ type Configuration struct {
 	//SessionHome   string
 	PingInterval time.Duration
 	SendInterval time.Duration
+	Credential   string
 	KeyPath      string
 	Proxy        string // use http_proxy
 }
